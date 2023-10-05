@@ -97,6 +97,8 @@ namespace olc::sound
 
 	private:
 		std::list<WaveInstance> m_listWaves;
+		bool m_bAddingWave = true;
+		bool m_bRemovingWave = false;
 
 	public:
 		uint32_t GetSampleRate() const;

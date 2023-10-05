@@ -582,6 +582,8 @@ namespace olc::sound
 
 	private:
 		std::list<WaveInstance> m_listWaves;
+		bool m_bAddingWave = true;
+		bool m_bRemovingWave = false;
 
 	public:
 		uint32_t GetSampleRate() const;
@@ -1029,6 +1031,9 @@ namespace olc::sound
 
 	PlayingWave WaveEngine::PlayWaveform(Wave* pWave, bool bLoop, double dSpeed)
 	{
+		m_bAddingWave = true;
+		while (m_bRemovingWave) { } // wait for remove to avoid memory conflict
+
 		WaveInstance wi;
 		wi.bLoop = bLoop;
 		wi.pWave = pWave;
@@ -1036,7 +1041,9 @@ namespace olc::sound
 		wi.dDuration = pWave->file.duration() / dSpeed;
 		wi.dInstanceTime = m_dGlobalTime;
 		m_listWaves.push_back(wi);
-		return std::prev(m_listWaves.end());
+		auto prevIt = std::prev(m_listWaves.end());
+		m_bAddingWave = false;
+		return prevIt;
 	}
 
 	void WaveEngine::StopWaveform(const PlayingWave& w)
@@ -1107,7 +1114,11 @@ namespace olc::sound
 				}
 
 				// Remove waveform instances that have finished
-				m_listWaves.remove_if([](const WaveInstance& wi) {return wi.bFinished; });
+				if (!m_bAddingWave) {
+					m_bRemovingWave = true;
+					m_listWaves.remove_if([](const WaveInstance &wi) {return wi.bFinished; });
+					m_bRemovingWave = false;
+				}
 
 
 				// 2) If user is synthesizing, request sample

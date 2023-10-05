@@ -102,6 +102,9 @@ namespace olc::sound
 
 	PlayingWave WaveEngine::PlayWaveform(Wave* pWave, bool bLoop, double dSpeed)
 	{
+		m_bAddingWave = true;
+		while (m_bRemovingWave) { } // wait for remove to avoid memory conflict
+
 		WaveInstance wi;
 		wi.bLoop = bLoop;
 		wi.pWave = pWave;
@@ -109,7 +112,9 @@ namespace olc::sound
 		wi.dDuration = pWave->file.duration() / dSpeed;
 		wi.dInstanceTime = m_dGlobalTime;
 		m_listWaves.push_back(wi);
-		return std::prev(m_listWaves.end());
+		auto prevIt = std::prev(m_listWaves.end());
+		m_bAddingWave = false;
+		return prevIt;
 	}
 
 	void WaveEngine::StopWaveform(const PlayingWave& w)
